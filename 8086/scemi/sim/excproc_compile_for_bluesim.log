@@ -1,0 +1,51 @@
+Warning: Command line: (S0073)
+  Duplicate directories were found in the path specified with the -p flag.
+  Only the first occurrence will be used. The duplicates are:
+    /afs/csail.mit.edu/group/csg/tools/tools_lx86/bluespec/Bluespec-2014.06.A/lib/board_support/bluenoc/bridges
+checking package dependencies
+compiling ../../scemi/ResetXactor.bsv
+compiling ../../src/includes/Types.bsv
+compiling ../../src/includes/MemTypes.bsv
+compiling ../../src/includes/ProcTypes.bsv
+compiling ../../src/includes/Exec.bsv
+code generation for module_exec starts
+Elaborated module file created: bdir_dut/module_exec.ba
+compiling ../../src/includes/Ehr.bsv
+compiling ../../src/includes/RFile.bsv
+code generation for mkRFile starts
+Elaborated module file created: bdir_dut/mkRFile.ba
+code generation for mkBypassRFile starts
+Elaborated module file created: bdir_dut/mkBypassRFile.ba
+compiling ../../src/includes/Fifo.bsv
+compiling ../../src/includes/Cop.bsv
+code generation for mkCop starts
+Warning: "../../src/includes/Cop.bsv", line 35, column 8: (G0117)
+  Rule `start' shadows the effects of `count' when they execute in the same
+  clock cycle. Affected method calls:
+    cycles.write
+  To silence this warning, use the `-no-warn-action-shadowing' flag.
+Elaborated module file created: bdir_dut/mkCop.ba
+compiling ../../src/includes/Decode.bsv
+code generation for module_decodeOpcode starts
+Elaborated module file created: bdir_dut/module_decodeOpcode.ba
+code generation for module_decodeAddressingMode starts
+Elaborated module file created: bdir_dut/module_decodeAddressingMode.ba
+code generation for module_decodeLowData starts
+Elaborated module file created: bdir_dut/module_decodeLowData.ba
+code generation for module_decodeHighData starts
+Elaborated module file created: bdir_dut/module_decodeHighData.ba
+code generation for module_decodeRFToMemoryFetch starts
+Elaborated module file created: bdir_dut/module_decodeRFToMemoryFetch.ba
+compiling ../../src/includes/SFifo.bsv
+compiling ../../src/includes/Scoreboard.bsv
+compiling ../../src/includes/MemInit.bsv
+compiling ../../src/includes/IMemory.bsv
+code generation for mkIMemory starts
+Elaborated module file created: bdir_dut/mkIMemory.ba
+compiling ../../src/includes/DMemory.bsv
+code generation for mkDMemory starts
+Elaborated module file created: bdir_dut/mkDMemory.ba
+compiling ../../src/ExcProc.bsv
+Warning: "../../src/ExcProc.bsv", line 386, column 29: (T0054)
+  Field not defined: `data'
+code generation for mkProc starts

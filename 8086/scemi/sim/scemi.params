@@ -1,0 +1,79 @@
+// Sce-Mi parameters file generated on: Sat Nov 22 09:19:19 EST 2014
+// By: Bluespec scemilink utility, version 2014.06.A (build 33987, 2014-06-24)
+
+// ObjectKind Index AttributeName Value
+
+ClockBinding 0 TransactorName ""
+ClockBinding 0 ClockName      "scemi_clk_port"
+
+Clock 0 ClockName          "scemi_clk_port"
+Clock 0 RatioNumerator     1
+Clock 0 RatioDenominator   1
+Clock 0 DutyHi             0
+Clock 0 DutyLo             100
+Clock 0 Phase              0
+Clock 0 ResetCycles        8
+
+MessageOutPort 3 TransactorName ""
+MessageOutPort 3 PortName       "scemi_tohost_get_outport"
+MessageOutPort 3 PortWidth      37
+MessageOutPort 3 ChannelId      2
+MessageOutPort 3 Type           "Tuple2#(Bit#(5),Bit#(32))"
+
+MessageOutPort 2 TransactorName ""
+MessageOutPort 2 PortName       "scemi_shutdown_ctrl_out"
+MessageOutPort 2 PortWidth      1
+MessageOutPort 2 ChannelId      3
+MessageOutPort 2 Type           "Bool"
+
+MessageOutPort 1 TransactorName ""
+MessageOutPort 1 PortName       "scemi_dut_softrst_resp_outport"
+MessageOutPort 1 PortWidth      1
+MessageOutPort 1 ChannelId      1
+MessageOutPort 1 Type           "Bit#(1)"
+
+MessageOutPort 0 TransactorName ""
+MessageOutPort 0 PortName       "scemi_dut_dut_prb_control_data_out"
+MessageOutPort 0 PortWidth      32
+MessageOutPort 0 ChannelId      0
+MessageOutPort 0 Type           "Bit#(32)"
+
+MessageInPort 5 TransactorName ""
+MessageInPort 5 PortName       "scemi_shutdown_ctrl_in"
+MessageInPort 5 PortWidth      1
+MessageInPort 5 ChannelId      5
+MessageInPort 5 Type           "Bool"
+
+MessageInPort 4 TransactorName ""
+MessageInPort 4 PortName       "scemi_imem_inport"
+MessageInPort 4 PortWidth      65
+MessageInPort 4 ChannelId      2
+MessageInPort 4 Type           "MemTypes::MemInit"
+
+MessageInPort 3 TransactorName ""
+MessageInPort 3 PortName       "scemi_fromhost_put_inport"
+MessageInPort 3 PortWidth      32
+MessageInPort 3 ChannelId      4
+MessageInPort 3 Type           "Bit#(32)"
+
+MessageInPort 2 TransactorName ""
+MessageInPort 2 PortName       "scemi_dut_softrst_req_inport"
+MessageInPort 2 PortWidth      1
+MessageInPort 2 ChannelId      1
+MessageInPort 2 Type           "Bit#(1)"
+
+MessageInPort 1 TransactorName ""
+MessageInPort 1 PortName       "scemi_dut_dut_prb_control_control_in"
+MessageInPort 1 PortWidth      17
+MessageInPort 1 ChannelId      0
+MessageInPort 1 Type           "SceMiSerialProbe::ProbeControl"
+
+MessageInPort 0 TransactorName ""
+MessageInPort 0 PortName       "scemi_dmem_inport"
+MessageInPort 0 PortWidth      65
+MessageInPort 0 ChannelId      3
+MessageInPort 0 Type           "MemTypes::MemInit"
+
+Link 0 LinkType   "TCP"
+Link 0 TCPAddress "127.0.0.1"
+Link 0 TCPPort    3375

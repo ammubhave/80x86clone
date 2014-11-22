@@ -1,0 +1,171 @@
+BIU: pc: 1000, inst: 9090b833, epoch: 0
+
+Cycle          0 ----------------------------------------------------
+BIU: pc: 1001, inst: 9090b833, epoch: 0
+FetchOpcode: ip: 1000, inst: 90, dinst: NOP, epoch: 0
+
+Cycle          1 ----------------------------------------------------
+BIU: pc: 1002, inst: 9090b833, epoch: 0
+FetchOpcode: ip: 1001, inst: 90, dinst: NOP, epoch: 0
+RegisterFetch: ip: 1000, dinst: NOP, epoch: 0
+
+Cycle          2 ----------------------------------------------------
+BIU: pc: 1003, inst: 9090b833, epoch: 0
+FetchOpcode: ip: 1002, inst: b8, dinst: MOV AX, ?, epoch: 0
+RegisterFetch: ip: 1001, dinst: NOP, epoch: 0
+MemoryFetch: ip: 1000, dinst: NOP, epoch: 0
+
+Cycle          3 ----------------------------------------------------
+BIU: pc: 1004, inst: 1240c706, epoch: 0
+FetchLowData: ip: 1002, inst: MOV AX, #0x0033, epoch: 0
+MemoryFetch: ip: 1001, dinst: NOP, epoch: 0
+Execute: ip: 1000, dinst: NOP, einst: ExecInst { iType: NOP, dst1: tagged Invalid , dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'h0000, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1001 }, epoch: 0
+
+Cycle          4 ----------------------------------------------------
+BIU: pc: 1005, inst: 1240c706, epoch: 0
+FetchHighData: ip: 1003, inst: MOV AX, #0x1233, epoch: 0
+Execute: ip: 1001, dinst: NOP, einst: ExecInst { iType: NOP, dst1: tagged Invalid , dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'h0000, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1002 }, epoch: 0
+
+Cycle          5 ----------------------------------------------------
+BIU: pc: 1006, inst: 1240c706, epoch: 0
+FetchOpcode: ip: 1005, inst: 40, dinst: INC AX, epoch: 0
+RegisterFetch: ip: 1004, dinst: MOV AX, #0x1233, epoch: 0
+
+Cycle          6 ----------------------------------------------------
+BIU: pc: 1007, inst: 1240c706, epoch: 0
+FetchOpcode: ip: 1006, inst: c7, dinst: MOV MEM16, ?, epoch: 0
+RegisterFetch: ip: 1005, dinst: INC AX, epoch: 0
+MemoryFetch: ip: 1004, dinst: MOV AX, #0x1233, epoch: 0
+
+Cycle          7 ----------------------------------------------------
+BIU: pc: 1008, inst: 0010adde, epoch: 0
+FetchAddressingMode: ip: 1006, inst: MOV MEM16, ?, epoch: 0
+MemoryFetch: ip: 1005, dinst: INC AX, epoch: 0
+Execute: ip: 1004, dinst: MOV AX, #0x1233, einst: ExecInst { iType: MOV_R_IMM16, dst1: tagged Valid AX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'h1233, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1005 }, epoch: 0
+
+Cycle          8 ----------------------------------------------------
+BIU: pc: 1009, inst: 0010adde, epoch: 0
+FetchLowDispAddr: ip: 1007, inst: MOV MEM16, ?, epoch: 0
+Execute: ip: 1005, dinst: INC AX, einst: ExecInst { iType: INC, dst1: tagged Valid AX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'haaab, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1006 }, epoch: 0
+
+Cycle          9 ----------------------------------------------------
+BIU: pc: 100a, inst: 0010adde, epoch: 0
+FetchHighDispAddr: ip: 1008, inst: MOV MEM16, ?, epoch: 0
+
+Cycle         10 ----------------------------------------------------
+BIU: pc: 100b, inst: 0010adde, epoch: 0
+FetchLowData: ip: 1009, inst: MOV MEM16, #0x00ad, epoch: 0
+
+Cycle         11 ----------------------------------------------------
+BIU: pc: 100c, inst: b4bebb78, epoch: 0
+FetchHighData: ip: 100a, inst: MOV MEM16, #0xdead, epoch: 0
+
+Cycle         12 ----------------------------------------------------
+BIU: pc: 100d, inst: b4bebb78, epoch: 0
+FetchOpcode: ip: 100c, inst: b4, dinst: MOV AH, ?, epoch: 0
+RegisterFetch: ip: 100b, dinst: MOV MEM16, #0xdead, epoch: 0
+
+Cycle         13 ----------------------------------------------------
+BIU: pc: 100e, inst: b4bebb78, epoch: 0
+FetchLowData: ip: 100c, inst: MOV AH, #0xbe, epoch: 0
+MemoryFetch: ip: 100b, dinst: MOV MEM16, #0xdead, epoch: 0
+
+Cycle         14 ----------------------------------------------------
+BIU (Reading data): addr: 00001000
+FetchOpcode: ip: 100e, inst: bb, dinst: MOV BX, ?, epoch: 0
+RegisterFetch: ip: 100d, dinst: MOV AH, #0xbe, epoch: 0
+
+Cycle         15 ----------------------------------------------------
+BIU: pc: 100f, inst: b4bebb78, epoch: 0
+MemoryFetch: ip: 100d, dinst: MOV AH, #0xbe, epoch: 0
+Execute: ip: 100b, dinst: MOV MEM16, #0xdead, einst: ExecInst { iType: MOV_M_IMM16, dst1: tagged Invalid , dst2: tagged Invalid , dstm: tagged Valid SegAddr { seg: DS, offset: 'h1000 }, dstVal1: 'h0000, dstVal2: 'h0000, dstValm: 'hdead, mispredict: False, brTaken: False, nextIp: 'h100c }, epoch: 0
+
+Cycle         16 ----------------------------------------------------
+BIU (Processing Write data): addr: 00001000
+FetchLowData: ip: 100e, inst: MOV BX, #0x0078, epoch: 0
+Execute: ip: 100d, dinst: MOV AH, #0xbe, einst: ExecInst { iType: MOV_R_IMM8, dst1: tagged Valid AX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'hbeab, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h100e }, epoch: 0
+
+Cycle         17 ----------------------------------------------------
+BIU (Writing data): addr: 00001000, data: 9090dead
+
+Cycle         18 ----------------------------------------------------
+BIU: pc: 1010, inst: 56b00ab3, epoch: 0
+
+Cycle         19 ----------------------------------------------------
+BIU: pc: 1011, inst: 56b00ab3, epoch: 0
+FetchHighData: ip: 100f, inst: MOV BX, #0x5678, epoch: 0
+
+Cycle         20 ----------------------------------------------------
+BIU: pc: 1012, inst: 56b00ab3, epoch: 0
+FetchOpcode: ip: 1011, inst: b0, dinst: MOV AL, ?, epoch: 0
+RegisterFetch: ip: 1010, dinst: MOV BX, #0x5678, epoch: 0
+
+Cycle         21 ----------------------------------------------------
+BIU: pc: 1013, inst: 56b00ab3, epoch: 0
+FetchLowData: ip: 1011, inst: MOV AL, #0x0a, epoch: 0
+MemoryFetch: ip: 1010, dinst: MOV BX, #0x5678, epoch: 0
+
+Cycle         22 ----------------------------------------------------
+BIU: pc: 1014, inst: deb4beb7, epoch: 0
+FetchOpcode: ip: 1013, inst: b3, dinst: MOV BL, ?, epoch: 0
+RegisterFetch: ip: 1012, dinst: MOV AL, #0x0a, epoch: 0
+Execute: ip: 1010, dinst: MOV BX, #0x5678, einst: ExecInst { iType: MOV_R_IMM16, dst1: tagged Valid BX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'h5678, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1011 }, epoch: 0
+
+Cycle         23 ----------------------------------------------------
+BIU: pc: 1015, inst: deb4beb7, epoch: 0
+FetchLowData: ip: 1013, inst: MOV BL, #0xde, epoch: 0
+MemoryFetch: ip: 1012, dinst: MOV AL, #0x0a, epoch: 0
+
+Cycle         24 ----------------------------------------------------
+BIU: pc: 1016, inst: deb4beb7, epoch: 0
+FetchOpcode: ip: 1015, inst: b4, dinst: MOV AH, ?, epoch: 0
+RegisterFetch: ip: 1014, dinst: MOV BL, #0xde, epoch: 0
+Execute: ip: 1012, dinst: MOV AL, #0x0a, einst: ExecInst { iType: MOV_R_IMM8, dst1: tagged Valid AX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'hbe0a, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1013 }, epoch: 0
+
+Cycle         25 ----------------------------------------------------
+BIU: pc: 1017, inst: deb4beb7, epoch: 0
+FetchLowData: ip: 1015, inst: MOV AH, #0xbe, epoch: 0
+MemoryFetch: ip: 1014, dinst: MOV BL, #0xde, epoch: 0
+
+Cycle         26 ----------------------------------------------------
+BIU: pc: 1018, inst: ad90e6e9, epoch: 0
+FetchOpcode: ip: 1017, inst: b7, dinst: MOV BH, ?, epoch: 0
+RegisterFetch: ip: 1016, dinst: MOV AH, #0xbe, epoch: 0
+Execute: ip: 1014, dinst: MOV BL, #0xde, einst: ExecInst { iType: MOV_R_IMM8, dst1: tagged Valid BX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'h56de, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1015 }, epoch: 0
+
+Cycle         27 ----------------------------------------------------
+BIU: pc: 1019, inst: ad90e6e9, epoch: 0
+FetchLowData: ip: 1017, inst: MOV BH, #0xad, epoch: 0
+MemoryFetch: ip: 1016, dinst: MOV AH, #0xbe, epoch: 0
+
+Cycle         28 ----------------------------------------------------
+BIU: pc: 101a, inst: ad90e6e9, epoch: 0
+FetchOpcode: ip: 1019, inst: 90, dinst: NOP, epoch: 0
+RegisterFetch: ip: 1018, dinst: MOV BH, #0xad, epoch: 0
+Execute: ip: 1016, dinst: MOV AH, #0xbe, einst: ExecInst { iType: MOV_R_IMM8, dst1: tagged Valid AX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'hbe0a, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1017 }, epoch: 0
+
+Cycle         29 ----------------------------------------------------
+BIU: pc: 101b, inst: ad90e6e9, epoch: 0
+FetchOpcode: ip: 101a, inst: e6, dinst: Unsupported: e6, epoch: 0
+RegisterFetch: ip: 1019, dinst: NOP, epoch: 0
+MemoryFetch: ip: 1018, dinst: MOV BH, #0xad, epoch: 0
+
+Cycle         30 ----------------------------------------------------
+BIU: pc: 101c, inst: 0000b000, epoch: 0
+FetchOpcode: ip: 101b, inst: e9, dinst: Unsupported: e9, epoch: 0
+RegisterFetch: ip: 101a, dinst: Unsupported: e6, epoch: 0
+MemoryFetch: ip: 1019, dinst: NOP, epoch: 0
+Execute: ip: 1018, dinst: MOV BH, #0xad, einst: ExecInst { iType: MOV_R_IMM8, dst1: tagged Valid BX, dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'hadde, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h1019 }, epoch: 0
+
+Cycle         31 ----------------------------------------------------
+BIU: pc: 101d, inst: 0000b000, epoch: 0
+FetchOpcode: ip: 101c, inst: 00, dinst: Unsupported: 00, epoch: 0
+RegisterFetch: ip: 101b, dinst: Unsupported: e9, epoch: 0
+MemoryFetch: ip: 101a, dinst: Unsupported: e6, epoch: 0
+Execute: ip: 1019, dinst: NOP, einst: ExecInst { iType: NOP, dst1: tagged Invalid , dst2: tagged Invalid , dstm: tagged Invalid , dstVal1: 'h0000, dstVal2: 'h0000, dstValm: 'h0000, mispredict: False, brTaken: False, nextIp: 'h101a }, epoch: 0
+
+Cycle         32 ----------------------------------------------------
+BIU: pc: 101e, inst: 0000b000, epoch: 0
+FetchOpcode: ip: 101d, inst: 00, dinst: Unsupported: 00, epoch: 0
+RegisterFetch: ip: 101c, dinst: Unsupported: 00, epoch: 0
+MemoryFetch: ip: 101b, dinst: Unsupported: e9, epoch: 0
