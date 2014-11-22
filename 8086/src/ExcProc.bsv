@@ -330,8 +330,8 @@ module mkProc(Proc);
         Bool s1 = True;
         Bool s2 = True;
         Bool s3 = True;
-        if (dInst.src1 matches tagged Valid .d &&& d matches tagged RegWord .r)
-            s1 = sb.search1(tagged Valid r);
+   //     if (dInst.src1 matches tagged Valid .d &&& d matches tagged RegWord .r)
+   //         s1 = sb.search1(tagged Valid r);
        /* if (dInst.src2 matches tagged Valid .d &&& d matches tagged RegWord .r)
             s2 = sb.search2(tagged Valid r);
         if (dInst.src3 matches tagged Valid .d &&& d matches tagged RegWord .r)
