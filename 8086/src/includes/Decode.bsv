@@ -35,6 +35,7 @@ function DecodedInst decodeOpcode(Byte pInst);
     pdInst.src3 = tagged Invalid;
     pdInst.dst1 = tagged Invalid;
     pdInst.dst2 = tagged Invalid;
+    pdInst.srcValm = tagged Word (?);
 
     // BYTE 1
     // Operation (Instruction) Code
@@ -63,28 +64,48 @@ function DecodedInst decodeOpcode(Byte pInst);
             pdInst.dst1 = tagged Valid tagged RegWord unpack(pInst[2:0]);
         end
 
-        'h50, 'h51, 'h52, 'h53, 'h54, 'h55, 'h56, 'h57:
-        begin
-            pdInst.src1 = tagged Valid tagged RegWord unpack(pInst[2:0]);
-        end
-
-        'h58, 'h59, 'h5A, 'h5B, 'h5C, 'h5D, 'h5E, 'h5F:
-        begin
-            pdInst.dst1 = tagged Valid tagged RegWord unpack(pInst[2:0]);
-        end
-
         // 'h60 - 'h6F -- not used
+
+        'h88:
+        begin
+            pdInst.iType = MOV_RM_R8;
+            pdInst.reqAddressMode = True;
+        end
+        'h89:
+        begin
+            pdInst.iType = MOV_RM_R16;
+            pdInst.reqAddressMode = True;
+        end
+        'h8A:
+        begin
+            pdInst.iType = MOV_R_RM8;
+            pdInst.reqAddressMode = True;
+        end
+        'h8B:
+        begin
+            pdInst.iType = MOV_R_RM16;
+            pdInst.reqAddressMode = True;
+        end
 
         'h90:
         begin
             pdInst.iType = NOP;
         end
 
+        'hA1:
+        begin
+            pdInst.iType = MOV_R_RM16;
+            pdInst.mod = 'b00;
+            pdInst.rm = 'b110;
+            pdInst.dst1 = tagged Valid tagged RegWord AX;
+            pdInst.reqLowDispAddr = True;
+            pdInst.reqHighDispAddr = True;
+        end
+
         'hB0, 'hB1, 'hB2, 'hB3, 'hB4, 'hB5, 'hB6, 'hB7: // done
         begin
             pdInst.iType = MOV_R_IMM8;
-            pdInst.src2 = tagged Valid tagged RegWord unpack({0, pInst[1:0]});
-            pdInst.dst1 = tagged Valid tagged RegByte unpack(pInst[2:0]);
+            pdInst.dst1 = tagged Valid tagged RegByte unpack({0, pInst[1:0]});
             pdInst.reqLowData = True;
         end
 
@@ -160,7 +181,7 @@ function DecodedInst decodeAddressingMode(DecodedInst pdInst, Byte addressMode);
     pdInst.reqHighDispAddr = getReqHighDispAddr(mod, rm);
 
     case (pdInst.opcode)
-        'h28: // Instructions which need reading Reg
+        'h88, 'h89: // Instructions which need reading Reg
         begin
             if (w == 0) // 8 bit
                 pdInst.src1 = tagged Valid tagged RegWord unpack({0, r[1:0]});
@@ -169,9 +190,33 @@ function DecodedInst decodeAddressingMode(DecodedInst pdInst, Byte addressMode);
         end
     endcase
     
+    case (pdInst.opcode)
+        'h8A, 'h8B: // Instructions which need writing Reg
+        begin
+            if (w == 0) // 8 bit
+                pdInst.dst1 = tagged Valid tagged RegWord unpack({0, r[1:0]});
+            else
+                pdInst.dst1 = tagged Valid tagged RegWord unpack(r);
+        end
+    endcase
 
     case (pdInst.opcode)
-        'hC5: // Instructions which need reading R/M
+        'h8A, 'h8B, 'hC5: // Instructions which need reading R/M
+        begin
+            let firstRegForMem = getFirstRegForMem(mod, rm);
+            let firstRegForReg = getFirstRegForReg(mod, rm, w);
+            let secondRegForMem = getSecondRegForMem(mod, rm);
+            if (isValid(firstRegForMem))
+                pdInst.src2 = tagged Valid tagged RegWord validValue(firstRegForMem);
+            else if (isValid(firstRegForReg))
+                pdInst.src2 = tagged Valid tagged RegWord validValue(firstRegForReg);
+            if (isValid(secondRegForMem))
+                pdInst.src3 = tagged Valid tagged RegWord validValue(secondRegForMem);
+        end
+    endcase
+
+    case (pdInst.opcode)
+        'h88, 'h89: // Instructions which need writing R/M
         begin
             let firstRegForMem = getFirstRegForMem(mod, rm);
             let firstRegForReg = getFirstRegForReg(mod, rm, w);
@@ -190,38 +235,38 @@ endfunction
 
 (* noinline *)
 function DecodedInst decodeLowData(DecodedInst pdInst, Byte lowData);
-    case (pdInst.opcode)
-        'hB0, 'hB1, 'hB2, 'hB3, 'hB4, 'hB5, 'hB6, 'hB7:
-        begin
-            pdInst.src1 = tagged Valid tagged Imm8 lowData;
-        end
-        'hB8, 'hB9, 'hBA, 'hBB, 'hBC, 'hBD, 'hBE, 'hBF, 'hC7:
-        begin
-            pdInst.src1 = tagged Valid tagged Imm16 ({8'h00, lowData});
-        end
-        default:
-        begin
+    //case (pdInst.opcode)
+    //    'hB0, 'hB1, 'hB2, 'hB3, 'hB4, 'hB5, 'hB6, 'hB7:
+    //    begin
+    pdInst.srcimm = tagged Byte lowData;
+    //    end
+    //    'hB8, 'hB9, 'hBA, 'hBB, 'hBC, 'hBD, 'hBE, 'hBF, 'hC7:
+    //    begin
+    //        pdInst.srcimm = tagged Valid tagged Word ({8'h00, lowData});
+    //    end
+    //    default:
+    //    begin
             //$display("Unexpected decodeLowData pdInst: ", fshow(pdInst));
             //$finish;
-        end
-    endcase
+    //    end
+    //endcase
 
     return pdInst;
 endfunction
 
 (* noinline *)
 function DecodedInst decodeHighData(DecodedInst pdInst, Byte highData);
-    case (pdInst.opcode)
-        'hB8, 'hB9, 'hBA, 'hBB, 'hBC, 'hBD, 'hBE, 'hBF, 'hC7:
-        begin
-            pdInst.src1 = tagged Valid tagged Imm16 ({highData, truncate(pdInst.src1.Valid.Imm16)});
-        end
-        default:
-        begin
+    //case (pdInst.opcode)
+   //     'hB8, 'hB9, 'hBA, 'hBB, 'hBC, 'hBD, 'hBE, 'hBF, 'hC7:
+    //    begin
+    pdInst.srcimm = tagged Word ({highData, pdInst.srcimm.Byte});
+    //    end
+    //    default:
+    //    begin
             //$fwrite(stderr, "Unexpected decodeHighData pdInst: %x. Exiting\n", fshow(pdInst));
             //$finish;
-        end
-    endcase
+     //   end
+    //endcase
 
     return pdInst;
 endfunction
@@ -230,17 +275,17 @@ function Maybe#(SegAddr) getMemAddrFromModRm(Bit#(2) mod, Bit#(3) rm, DecodedIns
     if (mod == 'b00 && rm == 'b110)
         return tagged Valid (SegAddr{seg: pdInst.mseg, offset: zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
     else if (mod == 'b00 && rm [2] == 0)
-        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2 + pdInst.srcVal3});
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + pdInst.srcVal3.Word});
     else if (mod == 'b00 && rm [2] == 1)
-        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2});
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word});
     else if (mod == 'b01 && rm [2] == 0)
-        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2 + pdInst.srcVal3 + zeroExtend(pdInst.lowDispAddr)});
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + pdInst.srcVal3.Word + zeroExtend(pdInst.lowDispAddr)});
     else if (mod == 'b01 && rm [2] == 1)
-        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2 + zeroExtend(pdInst.lowDispAddr)});
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + zeroExtend(pdInst.lowDispAddr)});
     else if (mod == 'b10 && rm [2] == 0)
-        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2 + pdInst.srcVal3 + zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + pdInst.srcVal3.Word + zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
     else if (mod == 'b10 && rm [2] == 1)
-        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2 + zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
     else
         return tagged Invalid;
 endfunction
@@ -252,11 +297,17 @@ function DecodedInst decodeRFToMemoryFetch(DecodedInst pdInst);
     let rm = pdInst.rm;
 
     case (pdInst.opcode)
-        'hC7:
+        'hA1:
         begin
-            let srcm = getMemAddrFromModRm(mod, rm, pdInst);
-            if (isValid(srcm))
-                pdInst.srcm = srcm;
+            pdInst.srcm = getMemAddrFromModRm('b00, 'b110, pdInst);
+        end
+        'h88, 'h89:
+        begin
+            // pdInst.dstm = getMemAddrFromModRm(mod, rm, pdInst);
+        end
+        'h8A, 'h8B, 'hC5:
+        begin
+            pdInst.srcm = getMemAddrFromModRm(mod, rm, pdInst);
         end
     endcase
 

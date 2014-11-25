@@ -135,6 +135,9 @@ module mkBypassSFifo( function Bool isFound(dt x, st y), SFifo#(n, dt, st) ifc )
         if( enqP[1] == deqP[0] ) begin
             full[0] <= True;
         end
+
+        $display("     Scoreboard: ENQ enqP[1]: ", fshow(enqP[1]), ", deqP[0]", fshow(deqP[0]), ", empty: ", empty[2], ", full: ", full[2]);
+        $display("      0: %h", data[0][1], ", 1: %h", data[1][1], ", 2: %h", data[2][1], ", 3: %h", data[3][1], ", 4: %h", data[4][1], ", 5: %h", data[5][1], ", 6: %h", data[6][1], ", 7: %h", data[7][1], ", 8: %h", data[8][1], ", 9: %h", data[9][1], ", 10: %h", data[10][1], ", 11: %h", data[11][1], ", 12: %h", data[12][1], ", 13: %h", data[13][1]);
     endmethod
 
     method Bool notEmpty = !empty[1];
@@ -156,6 +159,10 @@ module mkBypassSFifo( function Bool isFound(dt x, st y), SFifo#(n, dt, st) ifc )
         if( deqP[1] == enqP[1] ) begin
             empty[1] <= True;
         end
+
+        $display("     Scoreboard: DEQ enqP[1]: ", fshow(enqP[1]), ", deqP[0]", fshow(deqP[1]), ", empty: ", empty[2], ", full: ", full[2]);
+        $display("      0: %h", data[0][1], ", 1: %h", data[1][1], ", 2: %h", data[2][1], ", 3: %h", data[3][1], ", 4: %h", data[4][1], ", 5: %h", data[5][1], ", 6: %h", data[6][1], ", 7: %h", data[7][1], ", 8: %h", data[8][1], ", 9: %h", data[9][1], ", 10: %h", data[10][1], ", 11: %h", data[11][1], ", 12: %h", data[12][1], ", 13: %h", data[13][1]);
+
     endmethod
 
     method dt first if( !empty[1] );

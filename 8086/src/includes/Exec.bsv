@@ -76,23 +76,23 @@ function Word calcAddr(DecodedInst pdInst);
             if (rm == 'b110)
                 return zeroExtend(pdInst.highDispAddr) << 8 + pdInst.lowDispAddr;
             else if (rm[2] == 0)
-                return pdInst.srcVal2 + pdInst.srcVal3;
+                return pdInst.srcVal2.Word + pdInst.srcVal3.Word;
             else
-                return pdInst.srcVal2;
+                return pdInst.srcVal2.Word;
         end
         'b01:
         begin
             if (rm[2] == 0)
-                return pdInst.srcVal2 + pdInst.srcVal3 + signExtend(pdInst.lowDispAddr);
+                return pdInst.srcVal2.Word + pdInst.srcVal3.Word + signExtend(pdInst.lowDispAddr);
             else
-                return pdInst.srcVal2 + signExtend(pdInst.lowDispAddr);
+                return pdInst.srcVal2.Word + signExtend(pdInst.lowDispAddr);
         end
         'b10:
         begin
             if (rm[2] == 0)
-                return pdInst.srcVal2 + pdInst.srcVal3 + zeroExtend(pdInst.highDispAddr) << 8 + pdInst.lowDispAddr;
+                return pdInst.srcVal2.Word + pdInst.srcVal3.Word + zeroExtend(pdInst.highDispAddr) << 8 + pdInst.lowDispAddr;
             else
-                return pdInst.srcVal2 + zeroExtend(pdInst.highDispAddr) << 8 + pdInst.lowDispAddr;
+                return pdInst.srcVal2.Word + zeroExtend(pdInst.highDispAddr) << 8 + pdInst.lowDispAddr;
         end
         default: return ?;
     endcase
@@ -116,35 +116,38 @@ function ExecInst exec(DecodedInst dInst, Word ip, Word pc);
   case (dInst.iType)
     INC: // 'h40, 'h41, 'h42, 'h43, 'h44, 'h45, 'h46, 'h47 // done
     begin
-      eInst.dst1 = tagged Valid dInst.dst1.Valid.RegWord;
+      eInst.dst1 = dInst.dst1;
       eInst.dstVal1 = dInst.srcVal1 + 1;
     end
 
     DEC: // 'h48, 'h49, 'h4A, 'h4B, 'h4C, 'h4D, 'h4E, 'h4F // done
     begin
-      eInst.dst1 = tagged Valid dInst.dst1.Valid.RegWord;
+      eInst.dst1 = dInst.dst1;
       eInst.dstVal1 = dInst.srcVal1 - 1;
     end
 
     MOV_R_IMM8: // 'hB0, 'hB1, 'hB2, 'hB3, 'hB4, 'hB5, 'hB6, 'hB7 // done
     begin
-      eInst.dst1 = tagged Valid r16FromR8(dInst.dst1.Valid.RegByte);
-      if (pack(dInst.dst1.Valid.RegByte)[2] == 0) // Move to LSB
-        eInst.dstVal1 = (dInst.srcVal2 & 'hFF00) | zeroExtend(dInst.src1.Valid.Imm8);
-      else                                        // Move to MSB
-        eInst.dstVal1 = (dInst.srcVal2 & 'h00FF) | { dInst.src1.Valid.Imm8, 8'h00 };
+      eInst.dst1 = dInst.dst1;
+      eInst.dstVal1 = dInst.srcimm;
     end
 
     MOV_R_IMM16: // 'hB8, 'hB9, 'hBA, 'hBB, 'hBC, 'hBD, 'hBE, 'hBF, 'hC7 // done
     begin
-      eInst.dst1 = tagged Valid dInst.dst1.Valid.RegWord;
-      eInst.dstVal1 = dInst.src1.Valid.Imm16;
+      eInst.dst1 = dInst.dst1;
+      eInst.dstVal1 = dInst.srcimm;
     end
 
     MOV_M_IMM16:
     begin
       eInst.dstm = tagged Valid SegAddr{seg: DS, offset: calcAddr(dInst)};
-      eInst.dstValm = dInst.src1.Valid.Imm16;
+      eInst.dstValm = dInst.srcimm;
+    end
+
+    MOV_R_RM16:
+    begin
+      eInst.dst1 = dInst.dst1;
+      eInst.dstVal1 = dInst.srcValm;
     end
   endcase
  /* 

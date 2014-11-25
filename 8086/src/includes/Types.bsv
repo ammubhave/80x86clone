@@ -24,3 +24,73 @@ typedef Bit#(DataSz) Data;
 typedef Bit#(8) Byte;
 typedef Bit#(16) Word;
 typedef Bit#(32) LongWord;
+
+typedef union tagged {
+    Byte Byte;
+    Word Word;
+} Number deriving (Bits, Eq, FShow);
+
+instance Literal#(Number);
+    function Number fromInteger (Integer x);
+        return tagged Word fromInteger(x);
+    endfunction
+    function Bool inLiteralRange(Number target, Integer i);
+        if (target matches tagged Word .w &&& fromInteger(i) >= 256)
+            return False;
+        else if (target matches tagged Word .w &&& fromInteger(i) >= 65536)
+            return False;
+        else
+            return True;
+    endfunction
+endinstance
+
+instance Arith#(Number);
+    function Number \+ (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word + y.Word);
+        else
+            ret = tagged Byte (x.Byte + y.Byte);
+        return ret;
+    endfunction
+    function Number \- (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word - y.Word);
+        else
+            ret = tagged Byte (x.Byte - y.Byte);
+        return ret;
+    endfunction
+    function Number negate (Number x);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (-x.Word);
+        else
+            ret = tagged Byte (-x.Byte);
+        return ret;
+    endfunction
+    function Number \* (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word * y.Word);
+        else
+            ret = tagged Byte (x.Byte * y.Byte);
+        return ret;
+    endfunction
+    function Number \/ (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word / y.Word);
+        else
+            ret = tagged Byte (x.Byte / y.Byte);
+        return ret;
+    endfunction
+    function Number \% (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word % y.Word);
+        else
+            ret = tagged Byte (x.Byte % y.Byte);
+        return ret;
+    endfunction
+endinstance

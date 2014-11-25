@@ -13,8 +13,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 import Types::*;
 import MemTypes::*;
+import ProcTypes::*;
 import RegFile::*;
 import MemInit::*;
+
+typedef struct {
+    SegAddr addr;
+    Number data;
+} DMemReq deriving (Bits);
+
+typedef struct {
+    Number data;
+} DMemResp deriving (Bits);
 
 interface DMemory;
     method ActionValue#(MemResp) req(MemReq r);

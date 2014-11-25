@@ -72,7 +72,9 @@ $(assembly_dump): %.dump: %.exe
 
 %.vmh: %.exe
 	echo "@400" > $@
-	xxd -p $^ | sed -e 's/......../\0\n/g' | sed '/^$$/d' >> $@ 
+	xxd -c 4 -p $^ >> $@
+
+#	xxd -p $^ | sed -e 's/......../\0\n/g' | sed '/^$$/d' >> $@ 
 
 #	./objdump2vmh.pl $< $@
 

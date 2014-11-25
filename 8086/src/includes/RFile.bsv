@@ -24,29 +24,85 @@ import Ehr::*;
 import ConfigReg::*;
 
 interface RFile;
-    method Action wr( RIndx rindx, Data data );
-    method Data rd1( RIndx rindx );
-    method Data rd2( RIndx rindx );
+    method Action wr1 (RegNumber r, Number data);
+    method Action wr2 (RegNumber r, Number data);
+
+    method Byte rd1Byte (RegByte r);
+    method Word rd1Word (RegWord r);
+    method Number rd1 (RegNumber r);
+    method Byte rd2Byte (RegByte r);
+    method Word rd2Word (RegWord r);
+    method Number rd2 (RegNumber r);
+    method Byte rd3Byte (RegByte r);
+    method Word rd3Word (RegWord r);
+    method Number rd3 (RegNumber r);
 endinterface
 
 (* synthesize *)
 module mkRFile( RFile );
-    Vector#(32, Reg#(Data)) rfile <- replicateM(mkReg(0));
+    Vector#(8, Ehr#(2, Word)) rfile <- replicateM(mkEhrU);
+    // Vector#(32, Reg#(Data)) rfile <- replicateM(mkReg(0));
 
-    function Data read(RIndx rindx);
-        return rfile[rindx];
+    function Byte rdByte(RegByte r);
+        Bit#(3) packed_r = pack(r);
+        let data = rfile[regByteIdx(r)][0];
+        return packed_r[2] == 0 ? truncate(data) : truncate(data >> 8);
     endfunction
 
-    method Action wr( RIndx rindx, Data data );
-        if(rindx!=0) begin
-            rfile[rindx] <= data;
+    function Word rdWord(RegWord r);
+        return rfile[pack(r)][0];
+    endfunction
+
+    function Number rd(RegNumber r);
+        Number ret = ?;
+        if (r matches tagged RegWord .d)
+            ret = tagged Word rdWord(d);
+        else if (r matches tagged RegByte .d)
+            ret = tagged Byte rdByte(d);
+        return ret;
+    endfunction
+
+    method Action wr1(RegNumber r, Number data);
+        if (r matches tagged RegWord .d) begin
+            rfile[pack(d)][0] <= data.Word;
+        end else if (r matches tagged RegByte .d) begin
+            Bit#(3) packed_r = pack(d);
+            let orig_data = rfile[regByteIdx(d)][0];
+            rfile[regByteIdx(d)][0] <=
+            (packed_r[2] == 0 ?
+                (orig_data & 'hFF00) | zeroExtend(data.Byte)
+            :
+                (orig_data & 'h00FF) | (zeroExtend(data.Byte) << 8)
+            );
         end
     endmethod
 
-    method Data rd1( RIndx rindx ) = read(rindx);
-    method Data rd2( RIndx rindx ) = read(rindx);
-endmodule
+    method Action wr2(RegNumber r, Number data);
+        if (r matches tagged RegWord .d) begin
+            rfile[pack(d)][1] <= data.Word;
+        end else if (r matches tagged RegByte .d) begin
+            Bit#(3) packed_r = pack(d);
+            let orig_data = rfile[regByteIdx(d)][1];
+            rfile[regByteIdx(d)][1] <=
+            (packed_r[2] == 0 ?
+                (orig_data & 'hFF00) | zeroExtend(data.Byte)
+            :
+                (orig_data & 'h00FF) | (zeroExtend(data.Byte) << 8)
+            );
+        end
+    endmethod
 
+    method Byte rd1Byte( RegByte r ) = rdByte(r);
+    method Word rd1Word( RegWord r ) = rdWord(r);
+    method Number rd1( RegNumber r ) = rd(r);
+    method Byte rd2Byte( RegByte r ) = rdByte(r);
+    method Word rd2Word( RegWord r ) = rdWord(r);
+    method Number rd2( RegNumber r ) = rd(r);
+    method Byte rd3Byte( RegByte r ) = rdByte(r);
+    method Word rd3Word( RegWord r ) = rdWord(r);
+    method Number rd3( RegNumber r ) = rd(r);
+endmodule
+/*
 (* synthesize *)
 module mkBypassRFile( RFile );
     Vector#(32, Ehr#(2,Data)) rfile <- replicateM(mkEhr(0));
@@ -64,3 +120,4 @@ module mkBypassRFile( RFile );
     method Data rd1( RIndx rindx ) = read(rindx);
     method Data rd2( RIndx rindx ) = read(rindx);
 endmodule
+*/
