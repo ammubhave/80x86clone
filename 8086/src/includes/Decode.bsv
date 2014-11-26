@@ -561,7 +561,7 @@ function DecodedInst decodeRFToMemoryFetch(DecodedInst pdInst);
         begin
             pdInst.dstm = getMemAddrFromModRm(mod, rm, pdInst);
         end
-        'hE8:
+        'h50, 'h51, 'h52, 'h53, 'h54, 'h55, 'h56, 'h57, 'hE8:
         begin
             pdInst.dstm = tagged Valid SegAddr { seg: SS, offset: pdInst.srcVal1.Word };
         end
