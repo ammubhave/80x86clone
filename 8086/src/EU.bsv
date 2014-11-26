@@ -38,11 +38,13 @@ module mkEu(Fifo#(QBusSize, QBusElement) qBus,
             Fifo#(DMemFifoSize, DMemReq) dMemReqFifo,
             Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo,
             Fifo#(DMemFifoSize, DMemResp) dMemRespFifo,
+            Fifo#(RedirectFifoSize, Redirect) redirectFifo,
             Cop cop,
             Eu ifc);
 
     //Vector#(8, Reg#(Word)) rf <- replicateM(mkRegU);
     RFile rf <- mkRFile;
+    Reg#(RegFlags) flags <- mkReg(unpack('b1111000000000000));
     Reg#(Bool) euEpoch <- mkReg(False);
     Scoreboard sb <- mkBypassScoreboard;
 
@@ -116,16 +118,22 @@ module mkEu(Fifo#(QBusSize, QBusElement) qBus,
         let pc = qi.pc;
         let ip = qi.ip;
         let dInst = qi.pdInst;
+        dInst.flags = flags;
+
+        if (dInst.srcm matches tagged Valid .d) begin
+            dInst.srcValm = dMemRespFifo.first.data;
+            dMemRespFifo.deq;
+        end
         if (qi.ie == euEpoch) begin
             // Fetch
             //if (dInst.src1 matches tagged Valid .d &&& d matches tagged RegWord .r)
             //    dInst.srcVal1 = rf[pack(r)];
             //if (dInst.src2 matches tagged Valid .d &&& d matches tagged RegWord .r)
             //    dInst.srcVal2 = rf[pack(r)];
-            if (dInst.srcm matches tagged Valid .d) begin
-                dInst.srcValm = dMemRespFifo.first.data;
-                dMemRespFifo.deq;
-            end
+            //if (dInst.srcm matches tagged Valid .d) begin
+            //    dInst.srcValm = dMemRespFifo.first.data;
+            //    dMemRespFifo.deq;
+            //end
 
             // Execute
             ExecInst eInst = exec(dInst, ip, pc);
@@ -142,10 +150,21 @@ module mkEu(Fifo#(QBusSize, QBusElement) qBus,
                 rf.wr2(r, eInst.dstVal2);
             if (eInst.dstm matches tagged Valid .d)
                 dMemWriteReqFifo.enq(DMemReq{addr: d, data: eInst.dstValm});
+            flags <= eInst.flags;
+
+            cop.wr(eInst.dstp, eInst.dstValp);
+
 
             //ipReg <= eInst.nextIp;
-
-            $display("Execute:             ip: %h", ip, ", dinst: ", show_epoch(qi.ie), fshow(dInst), ", einst: ", fshow(eInst));
+            if (eInst.nextIp == pc + 1) begin
+                $display("Execute:             ip: %h", ip, ", dinst: ", show_epoch(qi.ie), fshow(dInst), ", einst: ", fshow(eInst));
+            end else begin
+                euEpoch <= !euEpoch;
+                redirectFifo.enq(Redirect { nextIp: eInst.nextIp });
+                $display("Execute (Redirect):  ip: %h", ip, ", dinst: ", show_epoch(qi.ie), fshow(dInst), ", einst: ", fshow(eInst));
+            end
+        end else begin
+            $display("Execute (Killing):  ip: %h", ip, ", dinst: ", show_epoch(qi.ie), fshow(dInst));
         end
 
         sb.remove2(getRegWordFromRegNumber(dInst.dst1), 

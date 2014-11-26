@@ -21,7 +21,8 @@ interface Cop;
     method Action start;
     method Bool started;
     method Data rd(RIndx idx);
-    method Action wr(Maybe#(FullIndx) idx, Data val);
+    //method Action wr(Maybe#(FullIndx) idx, Data val);
+    method Action wr(Maybe#(Word) idx, Number val);
     method ActionValue#(Tuple2#(RIndx, Data)) cpuToHost;
 
     // external interface to status, cause, and epc registers
@@ -97,6 +98,20 @@ module mkCop(Cop);
         return startReg;
     endmethod
 
+    method Action wr(Maybe#(Word) idx_maybe, Number val);
+        if (idx_maybe matches tagged Valid .idx) begin
+            if (idx == 'hE9) begin
+                copFifo.enq(tuple2(19, zeroExtend(val.Byte))); // Write char
+            end
+            if (idx == 'hEA) begin
+                copFifo.enq(tuple2(18, zeroExtend(val.Byte))); // Write number
+            end
+            if (idx == 'hEB) begin
+                copFifo.enq(tuple2(21, zeroExtend(val.Byte))); // Finish code
+            end
+        end
+    endmethod
+
     // method for reading co-processor registers
     method Data rd(RIndx idx);
         return (case(idx)
@@ -107,7 +122,7 @@ module mkCop(Cop);
                 //    14: epcReg[0];
                 endcase);
     endmethod
-
+/*
     // method for writing co-processor registers
     method Action wr(Maybe#(FullIndx) idx, Data val);
         if(isValid(idx) && validValue(idx).regType == CopReg) begin
@@ -120,7 +135,7 @@ module mkCop(Cop);
             endcase
         end
         numInsts <= numInsts + 1;
-    endmethod
+    endmethod*/
 
     method ActionValue#(Tuple2#(RIndx, Data)) cpuToHost;
         copFifo.deq;

@@ -13,7 +13,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 */
 
-
 import Types::*;
 import FShow::*;
 import MemTypes::*;
@@ -27,23 +26,61 @@ endinterface
 
 typedef Bit#(5) RIndx;
 
+typedef 2 SegRegFifoSize;
+typedef 2 RedirectFifoSize;
 typedef 2 DMemFifoSize;
 typedef 6 QBusSize;
 
-typedef enum {Unsupported, 
-              NOP, 
-              MOV_R_IMM8, 
-              MOV_R_IMM16, 
-              INC, 
-              DEC, 
+typedef enum {Unsupported,
+              ALU_RM_R,
+              ALU_R_RM,
+              ALU_R_IMM,
+              ALU_RM8_IMM8,
+              ALU_RM16_IMM16,
+              ALU_RM16_SIMM8,
+              CALL_NEAR,
+              CLC,
+              CLD,
+              CLI,
+              CMC,
+              DAA,
+              DAS,
+              DEC,
+              HLT,
+              IN,
+              INC,
+              JE,
+              JMP_FAR,
+              JMP_NEAR,
+              JMP_SHORT,
+              LEA,
               MOV_M_IMM16,
-              MOV_RM_R8,
-              MOV_RM_R16,
-              MOV_R_RM8,
-              MOV_R_RM16,
-              Illegal, Alu, Ld, St, J, Jr, Br, Mfc0, Mtc0, Syscall, ERet, Mflo, Mfhi, Mtlo, Mthi} IType deriving(Bits, Eq, FShow);
+              MOV_R_IMM,
+              MOV_R_RM,
+              MOV_RM_R,
+              NOP,
+              OUT,
+              POP_R16,
+              PUSH_R16,
+              RET,
+              STC,
+              STD,
+              STI,
+              TEST,
+              XCHG_R_R} IType deriving(Bits, Eq, FShow);
 typedef enum {Eq, Neq, Le, Lt, Ge, Gt, AT, NT} BrFunc deriving(Bits, Eq, FShow);
-typedef enum {Add, Sub, And, Or, Xor, Nor, Slt, Sltu, LShift, RShift, Sra} AluFunc deriving(Bits, Eq, FShow);
+
+typedef enum {
+    A,
+    ADD,
+    OR,
+    ADC,
+    SBB,
+    AND,
+    SUB,
+    XOR,
+    CMP
+} AluFunc deriving(Bits, Eq, FShow);
 
 typedef enum {
     AX = 3'b000,
@@ -66,6 +103,22 @@ typedef enum {
     DH = 3'b110,
     BH = 3'b111
 } RegByte deriving (Bits, Eq, FShow);
+
+typedef struct {
+    Bit#(4) reserved1;
+    Bit#(1) oF;
+    Bit#(1) dF;
+    Bit#(1) iF;
+    Bit#(1) tF;
+    Bit#(1) sF;
+    Bit#(1) zF;
+    Bit#(1) reserved2;
+    Bit#(1) aF;
+    Bit#(1) reserved3;
+    Bit#(1) pF;
+    Bit#(1) reserved4;
+    Bit#(1) cF;
+} RegFlags deriving (Bits, Eq, FShow);
 
 function RegWord r16FromR8(RegByte r) = unpack({0, pack(r)[1:0]});
 
@@ -97,7 +150,6 @@ typedef enum {Normal, CopReg} RegType deriving (Bits, Eq, FShow);
 
 typedef void Exception;
 
-
 typedef struct {
     Bool ie;
     Byte pInst;
@@ -112,8 +164,8 @@ typedef struct {
 } Fetch2FetchExecute deriving (Bits);
 
 typedef struct {
-    Addr pc;
-    Addr nextPc;
+    Word ip;
+    Word nextIp;
     IType brType;
     Bool taken;
     Bool mispredict;
@@ -131,6 +183,25 @@ function Maybe#(FullIndx) validReg(RIndx idx) = Valid (FullIndx{regType: Normal,
 function Maybe#(FullIndx) validCop(RIndx idx) = Valid (FullIndx{regType: CopReg, idx: idx});
 
 function RIndx validRegValue(Maybe#(FullIndx) idx) = validValue(idx).idx;
+
+function Maybe#(SegAddr) getMemAddrFromModRm(Bit#(2) mod, Bit#(3) rm, DecodedInst pdInst);
+    if (mod == 'b00 && rm == 'b110)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
+    else if (mod == 'b00 && rm [2] == 0)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + pdInst.srcVal3.Word});
+    else if (mod == 'b00 && rm [2] == 1)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word});
+    else if (mod == 'b01 && rm [2] == 0)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + pdInst.srcVal3.Word + zeroExtend(pdInst.lowDispAddr)});
+    else if (mod == 'b01 && rm [2] == 1)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + zeroExtend(pdInst.lowDispAddr)});
+    else if (mod == 'b10 && rm [2] == 0)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + pdInst.srcVal3.Word + zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
+    else if (mod == 'b10 && rm [2] == 1)
+        return tagged Valid (SegAddr{seg: pdInst.mseg, offset: pdInst.srcVal2.Word + zeroExtend(pdInst.lowDispAddr) + (zeroExtend(pdInst.highDispAddr) << 8)});
+    else
+        return tagged Invalid;
+endfunction
 
 typedef struct {
     Byte             opcode;
@@ -152,13 +223,19 @@ typedef struct {
     Maybe#(RegNumber) src3;
     Number            srcimm;
     Maybe#(SegAddr)   srcm;
+    Maybe#(Word)      srcp;
     Maybe#(RegNumber) dst1;
     Maybe#(RegNumber) dst2;
+    Maybe#(SegAddr)   dstm;
+    Maybe#(Word)      dstp;
 
     Number srcVal1;
     Number srcVal2;
     Number srcVal3;
     Number srcValm;
+    Number srcValp;
+
+    RegFlags flags;
 
     Bool reqAddressMode;
     Bool reqLowDispAddr;
@@ -179,12 +256,30 @@ endfunction
 function Fmt show_regfetch(DecodedInst pdInst);
     let ret = $format(" (");
     if (pdInst.src1 matches tagged Valid .d &&& d matches tagged RegWord .r)
-        ret = ret + $format(fshow(r), " = 0x%4h, ", pdInst.srcVal1);
+        ret = ret + $format(fshow(r), " = 0x%4h, ", pdInst.srcVal1.Word);
+    if (pdInst.src1 matches tagged Valid .d &&& d matches tagged RegByte .r)
+        ret = ret + $format(fshow(r), " = 0x%2h, ", pdInst.srcVal1.Byte);
     if (pdInst.src2 matches tagged Valid .d &&& d matches tagged RegWord .r)
-        ret = ret + $format(fshow(r), " = 0x%4h", pdInst.srcVal2);
+        ret = ret + $format(fshow(r), " = 0x%4h, ", pdInst.srcVal2.Word);
+    if (pdInst.src2 matches tagged Valid .d &&& d matches tagged RegByte .r)
+        ret = ret + $format(fshow(r), " = 0x%2h, ", pdInst.srcVal1.Byte);
     ret = ret + $format(")");
     return ret;
 endfunction
+/*
+function Fmt show_execute(ExecInst eInst);
+    let ret = $format(" (");
+    if (pdInst.src1 matches tagged Valid .d &&& d matches tagged RegWord .r)
+        ret = ret + $format(fshow(r), " = 0x%4h, ", pdInst.srcVal1.Word);
+    if (pdInst.src1 matches tagged Valid .d &&& d matches tagged RegByte .r)
+        ret = ret + $format(fshow(r), " = 0x%2h, ", pdInst.srcVal1.Byte);
+    if (pdInst.src2 matches tagged Valid .d &&& d matches tagged RegWord .r)
+        ret = ret + $format(fshow(r), " = 0x%4h, ", pdInst.srcVal2.Word);
+    if (pdInst.src2 matches tagged Valid .d &&& d matches tagged RegByte .r)
+        ret = ret + $format(fshow(r), " = 0x%2h, ", pdInst.srcVal1.Byte);
+    ret = ret + $format(")");
+    return ret;
+endfunction*/
 
 function Fmt show_memfetch(DecodedInst pdInst);
     let ret = $format(" (");
@@ -198,11 +293,16 @@ instance FShow#(DecodedInst);
     function Fmt fshow (DecodedInst pdInst);
         let ret = $format("Unsupported: %h", pdInst.opcode);
         case (pdInst.opcode)
+            'h3B:
+            begin
+                ret = $format("CMP ");
+            end
+
             'h40, 'h41, 'h42, 'h43, 'h44, 'h45, 'h46, 'h47:
             begin
                 ret = $format("INC ");
                 if (pdInst.dst1 matches tagged Valid .d &&& d matches tagged RegWord .r) begin
-                    ret = ret + $format(fshow(r), " (", fshow(r), " <= 0x%4h", pdInst.srcVal1, " + 1)");
+                    ret = ret + $format(fshow(r), " (", fshow(r), " <= 0x%4h", pdInst.srcVal1.Word, " + 1)");
                 end else
                     ret = ret + $format("?");
             end
@@ -211,9 +311,30 @@ instance FShow#(DecodedInst);
             begin
                 ret = $format("DEC ");
                 if (pdInst.dst1 matches tagged Valid .d &&& d matches tagged RegWord .r)
-                    ret = ret + $format(fshow(r), " (", fshow(r), " <= 0x%4h", pdInst.srcVal1, " - 1)");
+                    ret = ret + $format(fshow(r), " (", fshow(r), " <= 0x%4h", pdInst.srcVal1.Word, " - 1)");
                 else
                     ret = ret + $format("?");
+            end
+
+            'h74:
+            begin
+                ret = $format("JE NEAR [pc+");
+                ret = ret + $format("#0x%4h", pdInst.srcimm.Word);
+                ret = ret + $format("]");
+            end
+
+            'h80, 'h81, 'h82, 'h83:
+            begin
+                case (pdInst.r)
+                    'b000: ret = $format("ADD ");
+                    'b001: ret = $format("OR ");
+                    'b010: ret = $format("ADC ");
+                    'b011: ret = $format("SBB ");
+                    'b100: ret = $format("AND ");
+                    'b101: ret = $format("SUB ");
+                    'b110: ret = $format("XOR ");
+                    'b111: ret = $format("CMP ");
+                endcase
             end
 
             'h8B:
@@ -224,9 +345,24 @@ instance FShow#(DecodedInst);
                     ret = $format("MOV ?, [", fshow(pdInst.mseg), ":0x%2h%2h]", pdInst.highDispAddr, pdInst.lowDispAddr);
             end
 
+            'h8D:
+            begin
+                ret = $format("LEA ");
+                if (pdInst.dst1 matches tagged Valid .d &&& d matches tagged RegWord .r)
+                    ret = ret + $format(fshow(r), ", ");
+                else
+                    ret = ret + $format("?, ");
+                ret = ret + $format("[0x%4h]", pdInst.srcimm.Word);
+            end
+
             'h90:
             begin
                 ret = $format("NOP");
+            end
+
+            'h91, 'h92, 'h93, 'h94, 'h95, 'h96, 'h97:
+            begin
+                ret = $format("XCHG AX, ", fshow(pdInst.src2.Valid.RegWord));
             end
 
             'hA1:
@@ -262,11 +398,44 @@ instance FShow#(DecodedInst);
 
             'hC7:
             begin
-                ret = $format("MOV MEM16");
+                ret = $format("MOV ");
+                if (pdInst.dstm matches tagged Valid .d)
+                    ret = ret + $format("[", fshow(d.seg), ":0x%4h", d.offset, "]");
                 if (pdInst.srcimm matches tagged Word .i)
                     ret = ret + $format(", #0x%4h", i);
                 else
                     ret = ret + $format(", ?");
+            end
+
+            'hE6:
+            begin
+                ret = $format("OUT ");
+                if (pdInst.dstp matches tagged Valid .p)
+                    ret = ret + $format("#0x%2h", p);
+                else
+                    ret = ret + $format("?");
+                ret = ret + $format(", AL");
+            end
+
+            'hE8:
+            begin
+                ret = $format("CALL NEAR [pc+");
+                ret = ret + $format("#0x%4h", pdInst.srcimm.Word);
+                ret = ret + $format("]");
+            end
+
+            'hE9:
+            begin
+                ret = $format("JMP NEAR [pc+");
+                ret = ret + $format("#0x%4h", pdInst.srcimm.Word);
+                ret = ret + $format("]");
+            end
+
+            'hEB:
+            begin
+                ret = $format("JMP SHORT [pc+");
+                ret = ret + $format("#0x%4h", pdInst.srcimm.Byte);
+                ret = ret + $format("]");
             end
         endcase
         return ret;
@@ -274,16 +443,19 @@ instance FShow#(DecodedInst);
 endinstance
 
 typedef struct {
-    IType            iType;
+    IType              iType;
     Maybe#(RegNumber)  dst1;
     Maybe#(RegNumber)  dst2;
     Maybe#(SegAddr)    dstm;
+    Maybe#(Word)       dstp;
     Number             dstVal1;
     Number             dstVal2;
     Number             dstValm;
-    Bool             mispredict;
-    Bool             brTaken;
-    Word             nextIp;
+    Number             dstValp;
+    RegFlags flags;
+    Bool               mispredict;
+    Bool               brTaken;
+    Word               nextIp;
 } ExecInst deriving(Bits, Eq, FShow);
 
 /*

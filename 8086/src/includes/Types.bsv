@@ -94,3 +94,86 @@ instance Arith#(Number);
         return ret;
     endfunction
 endinstance
+
+instance Bitwise#(Number);
+    function Number \& (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word & y.Word);
+        else
+            ret = tagged Byte (x.Byte & y.Byte);
+        return ret;
+    endfunction
+    function Number \| (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word | y.Word);
+        else
+            ret = tagged Byte (x.Byte | y.Byte);
+        return ret;
+    endfunction
+    function Number \^ (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word ^ y.Word);
+        else
+            ret = tagged Byte (x.Byte ^ y.Byte);
+        return ret;
+    endfunction
+    function Number \~^ (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word ~^ y.Word);
+        else
+            ret = tagged Byte (x.Byte ~^ y.Byte);
+        return ret;
+    endfunction
+    function Number \^~ (Number x, Number y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word ^~ y.Word);
+        else
+            ret = tagged Byte (x.Byte ^~ y.Byte);
+        return ret;
+    endfunction
+    function Number invert (Number x);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (~x.Word);
+        else
+            ret = tagged Byte (~x.Byte);
+        return ret;
+    endfunction
+    function Number \<< (Number x, y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word << y);
+        else
+            ret = tagged Byte (x.Byte << y);
+        return ret;
+    endfunction
+    function Number \>> (Number x, y);
+        Number ret = ?;
+        if (x matches tagged Word .w)
+            ret = tagged Word (x.Word >> y);
+        else
+            ret = tagged Byte (x.Byte >> y);
+        return ret;
+    endfunction
+    function Bit#(1) msb (Number x);
+        Bit#(1) ret = ?;
+        if (x matches tagged Word .w)
+            ret = msb(x.Word);
+        else
+            ret = msb(x.Byte);
+        return ret;
+    endfunction
+    function Bit#(1) lsb (Number x);
+        Bit#(1) ret = ?;
+        if (x matches tagged Word .w)
+            ret = lsb(x.Word);
+        else
+            ret = lsb(x.Byte);
+        return ret;
+    endfunction
+endinstance

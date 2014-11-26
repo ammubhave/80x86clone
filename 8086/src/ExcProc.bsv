@@ -28,14 +28,15 @@ module mkProc(Proc);
     Fifo#(DMemFifoSize, DMemReq) dMemReqFifo <- mkCFFifo;
     Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo <- mkCFFifo;
     Fifo#(DMemFifoSize, DMemResp) dMemRespFifo <- mkCFFifo;
+    Fifo#(RedirectFifoSize, Redirect) redirectFifo <- mkCFFifo;
 
 	// Bus Interface Unit (BIU)
 
-    Biu biu <- mkBiu(qBus, dMemReqFifo, dMemWriteReqFifo, dMemRespFifo, cop);
+    Biu biu <- mkBiu(qBus, dMemReqFifo, dMemWriteReqFifo, dMemRespFifo, redirectFifo, cop);
 
     // Execution Unit (EU)
 
-    Eu eu <- mkEu(qBus, dMemReqFifo, dMemWriteReqFifo, dMemRespFifo, cop);
+    Eu eu <- mkEu(qBus, dMemReqFifo, dMemWriteReqFifo, dMemRespFifo, redirectFifo, cop);
 
         /* decode
         //DecodedInst dInst = decode(inst);

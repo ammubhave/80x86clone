@@ -28,6 +28,8 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
               Fifo#(DMemFifoSize, DMemReq) dMemReqFifo,
               Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo,
               Fifo#(DMemFifoSize, DMemResp) dMemRespFifo,
+              Fifo#(RedirectFifoSize, Redirect) redirectFifo,
+             // Fifo#(SegRegFifoSize, SegAddr) segRegReqFifo,
               Cop cop,
               Biu ifc);
     Reg#(Word) pcReg <- mkRegU;
@@ -50,12 +52,12 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
         Number data = ?;
         if (req.data matches tagged Word .w)
             case (req.addr.offset & 'b10)
-                'b00:
+                'b10:
                 begin
                     data = tagged Word orig_data[15:0];
                     $display("BIU (Reading data): addr: %h, data: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), data.Word);  
                 end
-                'b10:
+                'b00:
                 begin
                     data = tagged Word orig_data[31:16];
                     $display("BIU (Reading data): addr: %h, data: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), data.Word);
@@ -63,22 +65,22 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
             endcase
         else 
             case (req.addr.offset & 'b11)
-                'b00:
+                'b11:
                 begin
                     data = tagged Byte orig_data[7:0];
                     $display("BIU (Reading data): addr: %h, data: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), data.Byte);  
                 end
-                'b01:
+                'b10:
                 begin
                     data = tagged Byte orig_data[15:8];
                     $display("BIU (Reading data): addr: %h, data: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), data.Byte);
                 end
-                'b10:
+                'b01:
                 begin
                     data = tagged Byte orig_data[23:16];
                     $display("BIU (Reading data): addr: %h, data: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), data.Byte);  
                 end
-                'b11:
+                'b00:
                 begin
                     data = tagged Byte orig_data[31:24];
                     $display("BIU (Reading data): addr: %h, data: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), data.Byte);
@@ -93,14 +95,14 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
         if (isValid(dMemWriteStatusIsWritingData)) begin
             if (req.data matches tagged Word .d)
                 case (req.addr.offset & 'b10)
-                    'b10:
+                    'b00:
                     begin
                         let tmp <- dMem.req(MemReq{op: St, addr: addrFromSegOff(segRf.rd1(req.addr.seg), req.addr.offset), 
                                  data: ({d, validValue(dMemWriteStatusIsWritingData)[15:0]})});   
                         $display("BIU (Writing data): addr: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), 
                           ", data: %h", ({d, validValue(dMemWriteStatusIsWritingData)[15:0]}));                 
                     end
-                    'b00:
+                    'b10:
                     begin
                         let tmp <- dMem.req(MemReq{op: St, addr: addrFromSegOff(segRf.rd1(req.addr.seg), req.addr.offset), 
                                  data: ({validValue(dMemWriteStatusIsWritingData)[31:16], d})});                    
@@ -110,14 +112,14 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
                 endcase
             else if (req.data matches tagged Byte .d)
                 case (req.addr.offset & 'b11)
-                    'b11:
+                    'b00:
                     begin
                         let tmp <- dMem.req(MemReq{op: St, addr: addrFromSegOff(segRf.rd1(req.addr.seg), req.addr.offset), 
                                  data: ({d, validValue(dMemWriteStatusIsWritingData)[23:0]})});   
                         $display("BIU (Writing data): addr: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), 
                           ", data: %h", ({d, validValue(dMemWriteStatusIsWritingData)[23:0]}));
                     end
-                    'b10:
+                    'b01:
                     begin
                         let tmp <- dMem.req(MemReq{op: St, addr: addrFromSegOff(segRf.rd1(req.addr.seg), req.addr.offset), 
                                  data: ({validValue(dMemWriteStatusIsWritingData)[31:24], d, validValue(dMemWriteStatusIsWritingData)[15:0]})});                    
@@ -131,7 +133,7 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
                         $display("BIU (Writing data): addr: %h", addrFromSegOff(segRf.rd2(req.addr.seg), req.addr.offset), 
                           ", data: %h", ({validValue(dMemWriteStatusIsWritingData)[31:16], d, validValue(dMemWriteStatusIsWritingData)[7:0]}));                 
                     end
-                    'b00:
+                    'b11:
                     begin
                         let tmp <- dMem.req(MemReq{op: St, addr: addrFromSegOff(segRf.rd1(req.addr.seg), req.addr.offset), 
                                  data: ({validValue(dMemWriteStatusIsWritingData)[31:8], d})});                    
@@ -149,31 +151,41 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
     endrule
 
     rule doBIU_InstructionFetch(cop.started && !dMemReqFifo.notEmpty && !dMemWriteReqFifo.notEmpty);
-        Data inst = iMem.req(zeroExtend(pcReg));
-        $display("BIU:                 pc: %h", pcReg, ",  inst: %h", inst, ", epoch: ", biuEpoch);
-        case (pcReg & 'b11)
-            'b11:
-            begin
-                qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[7:0], pc: pcReg});
-            end
-            'b10:
-            begin
-                qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[15:8], pc: pcReg});
-            end
-            'b01:
-            begin
-                qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[23:16], pc: pcReg});
-            end
-            'h00:
-            begin
-                qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[31:24], pc: pcReg});
-            end
-        endcase
-        pcReg <= pcReg + 1;
+        if (redirectFifo.notEmpty) begin
+            let redirect = redirectFifo.first;
+            pcReg <= redirect.nextIp;
+            biuEpoch <= !biuEpoch;
+            redirectFifo.deq;
+            $display("BIU (Redirect):      ip: %h", redirect.nextIp, " epoch: ", !biuEpoch);
+        end else begin
+            let fetch_addr = addrFromSegOff(segRf.rd1(CS), zeroExtend(pcReg));
+            Data inst = iMem.req(fetch_addr);
+            $display("BIU:                 pc: %h", fetch_addr, ",  inst: ", show_epoch(biuEpoch), "%h", inst);
+            case (pcReg & 'b11)
+                'b11:
+                begin
+                    qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[7:0], pc: pcReg});
+                end
+                'b10:
+                begin
+                    qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[15:8], pc: pcReg});
+                end
+                'b01:
+                begin
+                    qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[23:16], pc: pcReg});
+                end
+                'h00:
+                begin
+                    qBus.enq(QBusElement{ie: biuEpoch, pInst: inst[31:24], pc: pcReg});
+                end
+            endcase
+            pcReg <= pcReg + 1;
+        end
     endrule
 
     method Action resetPc(Word startpc);
         pcReg <= startpc;
+        segRf.wr(DS, 'h100);
     endmethod
 
     method Bool memReady;
