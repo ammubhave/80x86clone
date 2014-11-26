@@ -20,18 +20,37 @@ import SegRFile::*;
 interface Biu;
     method Bool memReady;
     method Action resetPc(Word startpc);
+
+    method QBusElement qBusFirst;
+    method Action qBusDeq;
+    method DMemResp dMemRespFifoFirst;
+    method Action dMemRespFifoDeq;
+    method Action dMemReqFifoEnq(DMemReq req);
+    method Action dMemWriteReqFifoEnq(DMemReq req);
+    method Action redirectFifoEnq(Redirect req);
+
     interface MemInitIfc iMemInit;
     interface MemInitIfc dMemInit;
+    //interface Cop cop;
+    interface Cop copIfc;
 endinterface
 
-module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
+(* synthesize *)
+module mkBiu (/*Fifo#(QBusSize, QBusElement) qBus,
               Fifo#(DMemFifoSize, DMemReq) dMemReqFifo,
               Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo,
               Fifo#(DMemFifoSize, DMemResp) dMemRespFifo,
               Fifo#(RedirectFifoSize, Redirect) redirectFifo,
              // Fifo#(SegRegFifoSize, SegAddr) segRegReqFifo,
-              Cop cop,
+              Cop cop,*/
               Biu ifc);
+    Fifo#(QBusSize, QBusElement) qBus <- mkCFFifo;
+    Fifo#(DMemFifoSize, DMemReq) dMemReqFifo <- mkCFFifo;
+    Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo <- mkCFFifo;
+    Fifo#(DMemFifoSize, DMemResp) dMemRespFifo <- mkCFFifo;
+    Fifo#(RedirectFifoSize, Redirect) redirectFifo <- mkCFFifo;
+    Cop cop <- mkCop;
+
     Reg#(Word) pcReg <- mkRegU;
     Reg#(Bool) biuEpoch <- mkReg(False);
 
@@ -192,6 +211,29 @@ module mkBiu (Fifo#(QBusSize, QBusElement) qBus,
         return iMem.init.done() && dMem.init.done();
     endmethod
 
+    method QBusElement qBusFirst;
+        return qBus.first;
+    endmethod
+    method Action qBusDeq;
+        qBus.deq;
+    endmethod
+    method DMemResp dMemRespFifoFirst;
+        return dMemRespFifo.first;
+    endmethod
+    method Action dMemRespFifoDeq;
+        dMemRespFifo.deq;
+    endmethod
+    method Action dMemReqFifoEnq(DMemReq req);
+        dMemReqFifo.enq(req);
+    endmethod
+    method Action dMemWriteReqFifoEnq(DMemReq req);
+        dMemWriteReqFifo.enq(req);
+    endmethod
+    method Action redirectFifoEnq(Redirect req);
+        redirectFifo.enq(req);
+    endmethod
+
     interface MemInit iMemInit = iMem.init;
     interface MemInit dMemInit = dMem.init;
+    interface Cop copIfc = cop;
 endmodule

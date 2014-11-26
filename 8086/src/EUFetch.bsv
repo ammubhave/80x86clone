@@ -17,6 +17,7 @@ import Cop::*;
 import Vector::*;
 import Fifo::*;
 import Ehr::*;
+import BIU::*;
 
 interface EuFetch;
 endinterface
@@ -24,7 +25,7 @@ endinterface
 // FSM states for Fetch Stage
 typedef enum {FetchOpcode, FetchAddressingMode, FetchLowDispAddr, FetchHighDispAddr, FetchLowData, FetchHighData} FetchStage deriving(Eq, Bits, FShow);
 
-module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
+module mkEuFetch(Biu biu,
                  Fifo#(2, Fetch2FetchExecute) f2rfFifo,
                  EuFetch ifc);
 
@@ -33,7 +34,7 @@ module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
     Reg#(Bool) euEpoch <- mkReg(False);
 
     rule doEU_FetchOpcode(fetchStage == FetchOpcode);
-        let qi = qBus.first;
+        let qi = biu.qBusFirst;
         let pc = qi.pc;
         if (qi.ie != euEpoch) begin
             euEpoch <= !euEpoch;
@@ -58,21 +59,22 @@ module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
             fetchStage <= FetchHighData;
         else
             fetchStage <= FetchOpcode;
-        qBus.deq;
+        biu.qBusDeq;
 
         $display("FetchOpcode:         ip: %h", pc, ", dinst: ", show_epoch(qi.ie), fshow(pdInst), ", inst: %h", qi.pInst);
     endrule
 
     rule doEU_FetchAddressingMode(fetchStage == FetchAddressingMode);
+        let qBusFirst = biu.qBusFirst;
         let qi = f2fFifo.first;
         let pc = qi.pc;
         let ip = qi.ip;
         let pdInst = qi.pdInst;
-        if (qi.ie == euEpoch && qBus.first.ie == euEpoch) begin
+        if (qi.ie == euEpoch && qBusFirst.ie == euEpoch) begin
             if (qi.pdInst.reqAddressMode) begin
                 pc = pc + 1;
-                pdInst = decodeAddressingMode(pdInst, qBus.first.pInst);
-                qBus.deq;
+                pdInst = decodeAddressingMode(pdInst, qBusFirst.pInst);
+                biu.qBusDeq;
             end
 
             if (pdInst.reqLowDispAddr || pdInst.reqHighDispAddr || pdInst.reqLowData || pdInst.reqHighData)            
@@ -99,15 +101,16 @@ module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
     endrule
 
     rule doEU_FetchLowDispAddr(fetchStage == FetchLowDispAddr);
+        let qBusFirst = biu.qBusFirst;
         let qi = f2fFifo.first;
         let pc = qi.pc;
         let ip = qi.ip;
         let pdInst = qi.pdInst;
-        if (qi.ie == euEpoch && qBus.first.ie == euEpoch) begin
+        if (qi.ie == euEpoch && qBusFirst.ie == euEpoch) begin
             if (qi.pdInst.reqLowDispAddr) begin
                 pc = pc + 1;
-                pdInst.lowDispAddr = qBus.first.pInst;
-                qBus.deq;
+                pdInst.lowDispAddr = qBusFirst.pInst;
+                biu.qBusDeq;
             end
             
             if (pdInst.reqHighDispAddr || pdInst.reqLowData || pdInst.reqHighData)            
@@ -132,15 +135,16 @@ module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
     endrule
 
     rule doEU_FetchHighDispAddr(fetchStage == FetchHighDispAddr);
+        let qBusFirst = biu.qBusFirst;
         let qi = f2fFifo.first;
         let pc = qi.pc;
         let ip = qi.ip;
         let pdInst = qi.pdInst;
-        if (qi.ie == euEpoch && qBus.first.ie == euEpoch) begin
+        if (qi.ie == euEpoch && qBusFirst.ie == euEpoch) begin
             if (qi.pdInst.reqHighDispAddr) begin
                 pc = pc + 1;
-                pdInst.highDispAddr = qBus.first.pInst;
-                qBus.deq;
+                pdInst.highDispAddr = qBusFirst.pInst;
+                biu.qBusDeq;
             end
 
             if (pdInst.reqLowData || pdInst.reqHighData)            
@@ -163,15 +167,16 @@ module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
     endrule
 
     rule doEU_FetchLowData(fetchStage == FetchLowData);
+        let qBusFirst = biu.qBusFirst;
         let qi = f2fFifo.first;
         let pc = qi.pc;
         let ip = qi.ip;
         let pdInst = qi.pdInst;
-        if (qi.ie == euEpoch && qBus.first.ie == euEpoch) begin
+        if (qi.ie == euEpoch && qBusFirst.ie == euEpoch) begin
             if (pdInst.reqLowData) begin
                 pc = pc + 1;
-                pdInst = decodeLowData(pdInst, qBus.first.pInst);
-                qBus.deq;
+                pdInst = decodeLowData(pdInst, qBusFirst.pInst);
+                biu.qBusDeq;
             end
 
             if (pdInst.reqHighData)            
@@ -192,15 +197,16 @@ module mkEuFetch(Fifo#(QBusSize, QBusElement) qBus,
     endrule
 
     rule doEU_FetchHighData(fetchStage == FetchHighData);
+        let qBusFirst = biu.qBusFirst;
         let qi = f2fFifo.first;
         let pc = qi.pc;
         let ip = qi.ip;
         let pdInst = qi.pdInst;
-        if (qi.ie == euEpoch && qBus.first.ie == euEpoch) begin
+        if (qi.ie == euEpoch && qBusFirst.ie == euEpoch) begin
             if (qi.pdInst.reqHighData) begin
                 pc = pc + 1;
-                pdInst = decodeHighData(pdInst, qBus.first.pInst);
-                qBus.deq;
+                pdInst = decodeHighData(pdInst, qBusFirst.pInst);
+                biu.qBusDeq;
             end
 
             f2rfFifo.enq(Fetch2FetchExecute{ie: qi.ie, pdInst: pdInst, pc: pc, ip: ip});

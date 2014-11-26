@@ -316,10 +316,19 @@ instance FShow#(DecodedInst);
                     ret = ret + $format("?");
             end
 
+            'h48, 'h49, 'h4A, 'h4B, 'h4C, 'h4D, 'h4E, 'h4F:
+            begin
+                ret = $format("DEC ");
+                if (pdInst.dst1 matches tagged Valid .d &&& d matches tagged RegWord .r)
+                    ret = ret + $format(fshow(r), " (", fshow(r), " <= 0x%4h", pdInst.srcVal1.Word, " - 1)");
+                else
+                    ret = ret + $format("?");
+            end
+
             'h50, 'h51, 'h52, 'h53, 'h54, 'h55, 'h56, 'h57:
             begin
                 ret = $format("PUSH ");
-                if (pdInst.dst2 matches tagged Valid .d &&& d matches tagged RegWord .r)
+                if (pdInst.src2 matches tagged Valid .d &&& d matches tagged RegWord .r)
                     ret = ret + $format(fshow(r));
                 else
                     ret = ret + $format("?");
@@ -330,15 +339,6 @@ instance FShow#(DecodedInst);
                 ret = $format("POP ");
                 if (pdInst.dst2 matches tagged Valid .d &&& d matches tagged RegWord .r)
                     ret = ret + $format(fshow(r));
-                else
-                    ret = ret + $format("?");
-            end
-
-            'h48, 'h49, 'h4A, 'h4B, 'h4C, 'h4D, 'h4E, 'h4F:
-            begin
-                ret = $format("DEC ");
-                if (pdInst.dst1 matches tagged Valid .d &&& d matches tagged RegWord .r)
-                    ret = ret + $format(fshow(r), " (", fshow(r), " <= 0x%4h", pdInst.srcVal1.Word, " - 1)");
                 else
                     ret = ret + $format("?");
             end
