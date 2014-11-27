@@ -18,75 +18,29 @@ import Ehr::*;
 
 import BIU::*;
 import EUFetch::*;
-
-function Maybe#(RegWord) getRegWordFromRegNumber(Maybe#(RegNumber) o);
-    Maybe#(RegWord) pdst1 = tagged Invalid;
-    if (o matches tagged Valid .d) begin
-        if (d matches tagged RegWord .r)
-            pdst1 = tagged Valid r;
-        else if (d matches tagged RegByte .r)
-            pdst1 = tagged Valid r16FromR8(r);
-    end
-    return pdst1;
-endfunction
+import EURegisterFetch::*;
+import GetPut::*;
+import Connectable::*;
 
 (* synthesize *)
 module mkProc(Proc);
     Biu biu <- mkBiu;
 
-    RFile rf <- mkRFile;
     Reg#(RegFlags) flags <- mkReg(unpack('b1111000000000000));
     Reg#(Bool) euEpoch <- mkReg(False);
-    Scoreboard sb <- mkBypassScoreboard;
 
     Fifo#(2, Fetch2FetchExecute) f2rfFifo <- mkCFFifo;
     Fifo#(2, Fetch2FetchExecute) rf2mfFifo <- mkCFFifo;
     Fifo#(2, Fetch2FetchExecute) mf2eFifo <- mkCFFifo;
 
-// EXECUTION UNIT - FETCH/DECODE PIPELINE STAGE
-    EuFetch euFetch <- mkEuFetch(biu, f2rfFifo);
 
-// EXECUTION UNIT - EXECUTE PIPELINE STAGE
-    rule doEU_RegisterFetch;
-        let qi = f2rfFifo.first;
-        let pc = qi.pc;
-        let ip = qi.ip;
-        let dInst = qi.pdInst;
+    EuFetch euFetch <- mkEuFetch;
+    EuRegisterFetch euRegisterFetch <- mkEuRegisterFetch;
 
-       /* Bool s1 = True;
-        Bool s2 = True;
-        Bool s3 = True;
-        if (dInst.src1 matches tagged Valid .d &&& d matches tagged RegWord .r)
-            s1 = sb.search1(tagged Valid r);
-        if (dInst.src2 matches tagged Valid .d &&& d matches tagged RegWord .r)
-            s2 = sb.search2(tagged Valid r);
-        if (dInst.src3 matches tagged Valid .d &&& d matches tagged RegWord .r)
-            s3 = sb.search3(tagged Valid r);
-
-        $display("     Searching: s1: ", fshow(s1), ", s2: ", fshow(s2), ", s3: ", fshow(s3));
-*/
-        if (sb.search1(getRegWordFromRegNumber(dInst.src1)) &&
-            sb.search2(getRegWordFromRegNumber(dInst.src2)) && 
-            sb.search3(getRegWordFromRegNumber(dInst.src3))) begin
-            if (dInst.src1 matches tagged Valid .r)
-                dInst.srcVal1 = rf.rd1(r);
-            if (dInst.src2 matches tagged Valid .r)
-                dInst.srcVal2 = rf.rd2(r);
-            if (dInst.src3 matches tagged Valid .r)
-                dInst.srcVal3 = rf.rd3(r);
-
-            let pdst1 = getRegWordFromRegNumber(dInst.dst1);
-            let pdst2 = getRegWordFromRegNumber(dInst.dst2);
-            sb.insert2(pdst1, pdst2);
-            $display("     Enqueing: x: ", fshow(pdst1), ", y: ", fshow(pdst2));
-
-            rf2mfFifo.enq(Fetch2FetchExecute{ie: qi.ie, pdInst: dInst, pc: pc, ip: ip});
-
-            f2rfFifo.deq;
-            $display("RegisterFetch:       ip: %h", ip, ", dinst: ", show_epoch(qi.ie), fshow(dInst), show_regfetch(dInst));
-        end else begin
-            $display("RegisterFetch (Stalled): ip: %h", ip, ", dinst: ", fshow(dInst), ", epoch: ", qi.ie);
-        end
+    mkConnection(biu.get, euFetch.put);
+    mkConnection(euFetch.get, euRegisterFetch.put);
+    rule registerFetch2ExecuteLink;
+        let x <- euRegisterFetch.get.get; rf2mfFifo.enq(x);
     endrule
 
     rule doEU_MemoryFetch;
@@ -137,9 +91,9 @@ module mkProc(Proc);
 
             // WriteBack
             if (eInst.dst1 matches tagged Valid .r)
-                rf.wr1(r, eInst.dstVal1);
+                euRegisterFetch.rf_wr1(r, eInst.dstVal1);
             if (eInst.dst2 matches tagged Valid .r)
-                rf.wr2(r, eInst.dstVal2);
+                euRegisterFetch.rf_wr2(r, eInst.dstVal2);
             if (eInst.dstm matches tagged Valid .d)
                 biu.dMemWriteReqFifoEnq(DMemReq{addr: d, data: eInst.dstValm});
             flags <= eInst.flags;
@@ -159,7 +113,7 @@ module mkProc(Proc);
             $display("Execute (Killing):  ip: %h", ip, ", dinst: ", show_epoch(qi.ie), fshow(dInst));
         end
 
-        sb.remove2(getRegWordFromRegNumber(dInst.dst1), 
+        euRegisterFetch.sb_remove2(getRegWordFromRegNumber(dInst.dst1), 
                    getRegWordFromRegNumber(dInst.dst2));
         mf2eFifo.deq;
     endrule

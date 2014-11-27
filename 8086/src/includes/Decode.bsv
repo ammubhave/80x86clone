@@ -49,7 +49,7 @@ function DecodedInst decodeOpcode(Byte pInst);
 
     // Data size word/byte for all registers (Byte = 0, Word = 1)
     //let w      = pInst[ 0 : 0 ]; // Word/Byte Operation
-
+/*
     case (pdInst.opcode)
         'h00,   // ADD RM8, R8
         'h01,   // ADD RM16, R16
@@ -123,20 +123,6 @@ function DecodedInst decodeOpcode(Byte pInst);
             pdInst.reqLowData = True;
             pdInst.reqHighData = True;
         end
-
-        /*'h27:   // DAA
-        begin
-            pdInst.iType = DAA;
-            pdInst.src1 = tagged Valid tagged RegByte AL;
-            pdInst.dst1 = tagged Valid tagged RegByte AL;
-        end
-
-        'h2F:   // DAS
-        begin
-            pdInst.iType = DAS;
-            pdInst.src1 = tagged Valid tagged RegByte AL;
-            pdInst.dst1 = tagged Valid tagged RegByte AL;
-        end*/
 
         //  INC R16
         'h40, 'h41, 'h42, 'h43, 'h44, 'h45, 'h46, 'h47:
@@ -385,6 +371,17 @@ function DecodedInst decodeOpcode(Byte pInst);
             pdInst.iType = Unsupported;
         end
     endcase
+*/
+    /*if (pdInst.opcode[7:4] == 'b0100) begin
+        //  INC R16
+        //'h40, 'h41, 'h42, 'h43, 'h44, 'h45, 'h46, 'h47:
+        //  DEC R16
+        //'h48, 'h49, 'h4A, 'h4B, 'h4C, 'h4D, 'h4E, 'h4F:
+
+        pdInst.iType = pdInst.opcode[3] == 0 ? INC : DEC;
+        pdInst.src1 = tagged Valid tagged RegWord unpack(pInst[2:0]);
+        pdInst.dst1 = tagged Valid tagged RegWord unpack(pInst[2:0]);
+    end*/
 
     return pdInst;
 endfunction

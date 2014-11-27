@@ -203,6 +203,18 @@ function Maybe#(SegAddr) getMemAddrFromModRm(Bit#(2) mod, Bit#(3) rm, DecodedIns
         return tagged Invalid;
 endfunction
 
+
+function Maybe#(RegWord) getRegWordFromRegNumber(Maybe#(RegNumber) o);
+    Maybe#(RegWord) pdst1 = tagged Invalid;
+    if (o matches tagged Valid .d) begin
+        if (d matches tagged RegWord .r)
+            pdst1 = tagged Valid r;
+        else if (d matches tagged RegByte .r)
+            pdst1 = tagged Valid r16FromR8(r);
+    end
+    return pdst1;
+endfunction
+
 typedef struct {
     Byte             opcode;
     IType            iType;

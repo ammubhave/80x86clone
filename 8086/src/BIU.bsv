@@ -16,13 +16,12 @@ import Vector::*;
 import Fifo::*;
 import Ehr::*;
 import SegRFile::*;
+import GetPut::*;
 
 interface Biu;
     method Bool memReady;
     method Action resetPc(Word startpc);
 
-    method QBusElement qBusFirst;
-    method Action qBusDeq;
     method DMemResp dMemRespFifoFirst;
     method Action dMemRespFifoDeq;
     method Action dMemReqFifoEnq(DMemReq req);
@@ -31,19 +30,12 @@ interface Biu;
 
     interface MemInitIfc iMemInit;
     interface MemInitIfc dMemInit;
-    //interface Cop cop;
     interface Cop copIfc;
+    interface Get#(QBusElement) get;
 endinterface
 
 (* synthesize *)
-module mkBiu (/*Fifo#(QBusSize, QBusElement) qBus,
-              Fifo#(DMemFifoSize, DMemReq) dMemReqFifo,
-              Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo,
-              Fifo#(DMemFifoSize, DMemResp) dMemRespFifo,
-              Fifo#(RedirectFifoSize, Redirect) redirectFifo,
-             // Fifo#(SegRegFifoSize, SegAddr) segRegReqFifo,
-              Cop cop,*/
-              Biu ifc);
+module mkBiu (Biu ifc);
     Fifo#(QBusSize, QBusElement) qBus <- mkCFFifo;
     Fifo#(DMemFifoSize, DMemReq) dMemReqFifo <- mkCFFifo;
     Fifo#(DMemFifoSize, DMemReq) dMemWriteReqFifo <- mkCFFifo;
@@ -60,10 +52,7 @@ module mkBiu (/*Fifo#(QBusSize, QBusElement) qBus,
     IMemory  iMem <- mkIMemory;
     DMemory  dMem <- mkDMemory;
 
-   // Fifo#(2, DMemReq) dMemReqFifo <- mkCFFifo;
-    //Fifo#(2, DMemReq) dMemWriteReqFifo <- mkCFFifo;
     Reg#(Maybe#(Data)) dMemWriteStatusIsWritingData <- mkReg(tagged Invalid);
-   // Fifo#(2, DMemResp) dMemRespFifo <- mkCFFifo;
 
    rule doBIU_HandleMemRequest(cop.started && dMemReqFifo.notEmpty);
         let req = dMemReqFifo.first;  
@@ -211,12 +200,6 @@ module mkBiu (/*Fifo#(QBusSize, QBusElement) qBus,
         return iMem.init.done() && dMem.init.done();
     endmethod
 
-    method QBusElement qBusFirst;
-        return qBus.first;
-    endmethod
-    method Action qBusDeq;
-        qBus.deq;
-    endmethod
     method DMemResp dMemRespFifoFirst;
         return dMemRespFifo.first;
     endmethod
@@ -236,4 +219,11 @@ module mkBiu (/*Fifo#(QBusSize, QBusElement) qBus,
     interface MemInit iMemInit = iMem.init;
     interface MemInit dMemInit = dMem.init;
     interface Cop copIfc = cop;
+
+    interface Get get;
+        method ActionValue#(QBusElement) get;
+            qBus.deq;
+            return qBus.first;
+        endmethod
+    endinterface
 endmodule
